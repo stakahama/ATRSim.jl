@@ -31,10 +31,17 @@ ATRConfig(N::Integer, aIRE::Float64, θ::Float64, n₁::RealsA, n₃::RealsA) =
 ATRConfig(N::Integer, aIRE::Float64, θ::Float64, n₁::RealsA) = 
     Bulk(N, aIRE, θ, n₁)
 
+"""
+    dp(λ::RealsA, config::Thinfilm)
+    dp(λ::RealsA, n₂::RealsA, config::Bulk)
+
+Penetration depth as a function of wavelength.
+"""
 function dp end
 
 function dp(λ::RealsA, config::Thinfilm)
     (; θ, n₁, n₃) = config
+    ## Sometimes n₁ has missing elements if generated from SellmeierEqn
     λ₁ = λ ./ n₁
     n₃₁ = n₃ ./ n₁
     f(λ₁, n₃₁) = !ismissing(n₃₁) && sin(θ) > n₃₁ ?
@@ -159,7 +166,7 @@ end
 """
     prefactor(ν::RealsA, n₂::RealsA, R::Real, config::Thinfilm)
 
-prefactor to α / ρ .* m
+Prefactor to α / ρ .* m. 
 """
 function prefactor(ν::RealsA, n₂::RealsA, R::Real, config::Thinfilm)
     (; N, aIRE) = config
