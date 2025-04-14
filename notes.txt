@@ -1,0 +1,12 @@
+Export script.
+
+$ jupytext --to jl README.qmd
+# ... edit file (optional) ...
+$ mv README.md examples/example.jl
+
+# or
+$ quarto convert README.qmd 
+$ jupyter nbconvert --to script README.ipynb 
+$ mv README.txt examples/example.jl
+$ rm README.ipynb
+

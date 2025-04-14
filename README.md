@@ -6,9 +6,16 @@ Status](https://github.com/stakahama/ATRSim.jl/actions/workflows/CI.yml/badge.sv
 
 ATR calculations from Arangio et
 al. doi:[10.1177/0003702818821330](https://doi.org/10.1177/0003702818821330),
-2019.
+2019. Equations originally taken from the following sources:
 
-Following code is found in `examples/example.jl`.
+- Harrick, N. J., *Internal Reflection Spectroscopy*, Harrick Scientific
+  Corp.: Ossining, NY, 1979.
+- Mirabella Jr., F. M., “Internal Reflection Spectroscopy”, *Applied
+  Spectroscopy Reviews*, Vol. 21, No. 1-2, p. 45-178, Taylor & Francis,
+  doi:[10.1080/05704928508060428](https://doi.org/10.1080/05704928508060428)
+  1985.
+
+Following code is also found in `examples/example.jl`.
 
 ## Installation
 
@@ -17,6 +24,9 @@ using Pkg
 Pkg.add(url = "https://github.com/stakahama/SellmeierEqn.jl")
 Pkg.add(url = "https://github.com/stakahama/ATRSim.jl")
 ```
+
+Additionally, [Integrals.jl](https://github.com/SciML/Integrals.jl) is a
+dependency for calculating the particle modification factor (χ).
 
 ## Usage
 
@@ -56,6 +66,12 @@ configbulk = ATRConfig(N, aIRE, θ, n₁)
 ```
 
 ``` julia
+println([typeof(configfilm), typeof(configfixed), typeof(configbulk)])
+```
+
+    DataType[Thinfilm, Thinfilm, Bulk]
+
+``` julia
 d = 0.05 # μm
 R = 0.08 # μm
 n₂fixed = 1.5
@@ -66,22 +82,22 @@ Comparison of particle spectra with different assumptions for n₂
 
 ``` julia
 plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
-plot!(ν, α .* d .* ξ(n, configfilm) .* χ(ν, R, configfilm), label = "varying n₂")
-plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* χ(ν, R, configfixed), label = "fixed n₂")
+plot!(ν, α .* d .* ξ(n, configfilm) .* χ(ν, R, configfilm) .* 1e-6, label = "varying n₂")
+plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* χ(ν, R, configfixed) .* 1e-6, label = "fixed n₂")
 ```
 
-![](README_files/figure-commonmark/cell-8-output-1.svg)
+![](README_files/figure-commonmark/cell-9-output-1.svg)
 
 Comparison of spectra with different ATR models.
 
 ``` julia
 plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
-plot!(ν, α .* d .* ξ(n₂fixed, configfixed), label = "thin film")
-plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* χ(ν, R, configfixed), label = "particle")
-plot!(ν, 0.1 .* α .* deff(ν, n₂fixed, configbulk), label = "0.1 × bulk")
+plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* 1e-6, label = "thin film")
+plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* χ(ν, R, configfixed) .* 1e-6, label = "particle")
+plot!(ν, 0.1 .* α .* deff(ν, n₂fixed, configbulk) .* 1e-6, label = "0.1 × bulk")
 ```
 
-![](README_files/figure-commonmark/cell-9-output-1.svg)
+![](README_files/figure-commonmark/cell-10-output-1.svg)
 
 Relation among deposited mass, film thickness, and equivalent particle
 radius (for hexagonal circle packing assumption).
@@ -100,7 +116,7 @@ plot!(m, d, label = "film")
 plot!(m, 2 * R, label = "particle (ηₕ)")
 ```
 
-![](README_files/figure-commonmark/cell-11-output-1.svg)
+![](README_files/figure-commonmark/cell-12-output-1.svg)
 
 Simulation of absorbance.
 
@@ -118,7 +134,7 @@ plot(ν, A,
      legend = :topleft, legendtitle = "mass deposited")
 ```
 
-![](README_files/figure-commonmark/cell-13-output-1.svg)
+![](README_files/figure-commonmark/cell-14-output-1.svg)
 
 ``` julia
 plot(ν, A,
@@ -129,18 +145,19 @@ plot(ν, A,
 xlims!(800, 1400)
 ```
 
-![](README_files/figure-commonmark/cell-14-output-1.svg)
+![](README_files/figure-commonmark/cell-15-output-1.svg)
 
 The following figure is slightly different from Figure S2 (bottom panel)
-as the penetration depth below is assumed to not be influenced by the
-sample medium n₂ (bulk), but instead n₃ (thin flim).
+in Arangio et al. as the version below is calculated assuming the
+penetration depth is not be influenced by the sample medium n₂ (bulk),
+but instead n₃ (thin flim) (Mirabella, 1985).
 
 ``` julia
 pl = plot(layout = (2, 1))
 plot!(pl[1], xflip = true, ylim = [0, 4],
      xlabel = "Wavenumber (cm⁻¹)", ylabel = "dₚ (μm)", legend = :topleft)
 plot!(pl[1], ν, dp(λ, configfixed), 
-     label = "thinfilm")
+     label = "thin film")
 plot!(pl[1], ν, dp(λ, n₂fixed, ATRConfig(N, aIRE, θ, refidx(1e4 / 2000, :ZnSe))), 
      label = "bulk")
 d = range(20, 100, step=20) .* 1e-3 # μm
@@ -152,7 +169,9 @@ plot!(pl[2], ν, hcat(map(R -> χ(ν, R, configfixed), R)...),
      legend = :bottomright, legendtitle = "thickness")
 ```
 
-![](README_files/figure-commonmark/cell-15-output-1.svg)
+![](README_files/figure-commonmark/cell-16-output-1.svg)
+
+Plot as a function of deposited mass.
 
 ``` julia
 m = [10, 20, 50, 100, 120]
@@ -163,4 +182,4 @@ plot(ν, hcat(map(m -> χ(ν, Req(m), configfixed), m)...),
      legend = :bottomright, legendtitle = "mass deposited")
 ```
 
-![](README_files/figure-commonmark/cell-16-output-1.svg)
+![](README_files/figure-commonmark/cell-17-output-1.svg)
