@@ -6,6 +6,9 @@ export ATRConfig, Thinfilm, Bulk, E₀², dp, ξ, χ, deff, prefactor
 const RealsC = Union{Real, Vector{<:Union{Missing, Real}}}
 const RealsA = Union{Real, AbstractVector{<:Union{Missing, Real}}}
 
+"""
+`Thinfilm` and `Bulk` are structures that store information about the ATR configuration. Their type information is used for method dispatch. When a vector is passed for n₁ or n₃, vectors such as ν and n₂ passed to its methods must be of the same length.
+"""
 abstract type ATRConfig end
 
 ## Thin film
@@ -41,12 +44,11 @@ function dp end
 
 function dp(λ::RealsA, config::Thinfilm)
     (; θ, n₁, n₃) = config
-    ## Sometimes n₁ has missing elements if generated from SellmeierEqn
     λ₁ = λ ./ n₁
     n₃₁ = n₃ ./ n₁
     f(λ₁, n₃₁) = !ismissing(n₃₁) && sin(θ) > n₃₁ ?
         (λ₁ / (2π * sqrt(sin(θ)^2 - n₃₁^2))) :
-        missing
+        missing # n₁ can have missing elements (if generated from SellmeierEqn)
     f.(λ₁, n₃₁)
 end
 
@@ -56,7 +58,7 @@ function dp(λ::RealsA, n₂::RealsA, config::Bulk)
     n₂₁ = n₂ ./ n₁
     f(λ₁, n₂₁) = !ismissing(n₂₁) && sin(θ) > n₂₁ ?
         λ₁ / (2π * sqrt(sin(θ)^2 - n₂₁^2)) :
-        missing
+        missing # n₁ can have missing elements (if generated from SellmeierEqn)
     f.(λ₁, n₂₁)
 end
 
@@ -64,7 +66,7 @@ end
     E₀²(n₂::RealsA, config::Thinfilm)
     E₀²(n₂::RealsA, config::Bulk)
 
-Electric field intensity at the IRE-sample interface.
+Normalized electric field intensity at the IRE-sample interface (Fresnel transmission coefficients). Notation of Harrick and Mirabella are used (as adopted by Arangio et al.).
 """
 function E₀² end
 
