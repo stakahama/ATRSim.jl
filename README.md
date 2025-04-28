@@ -4,9 +4,11 @@
 [![Build
 Status](https://github.com/stakahama/ATRSim.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/stakahama/ATRSim.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-ATR calculations from Arangio et
+Attenuated total reflection (ATR) simulator with focus on
+(semi-)quantitative analysis of deposited thin films using unpolarized
+radiation (from Arangio et
 al. doi:[10.1177/0003702818821330](https://doi.org/10.1177/0003702818821330),
-2019. Equations originally taken from the following sources:
+2019). ATR model equations originally taken from the following sources:
 
 - Harrick, N. J., *Internal Reflection Spectroscopy*, Harrick Scientific
   Corp.: Ossining, NY, 1979.
@@ -17,7 +19,25 @@ al. doi:[10.1177/0003702818821330](https://doi.org/10.1177/0003702818821330),
 - Milosevic M., *Internal Reflection and ATR Spectroscopy*, John Wiley &
   Sons: Hoboken, NJ, 2012.
 
-Following code is also found in `examples/example.jl`.
+Upon deposition, analytes can form a liquid or amorphous solid film, or
+crystalline particles. In the last case, the spectral response may be
+modified by a factor (χ) due to increased sample height of particles
+(assumed spherical) formed instead of a homogeneous film.
+
+To generate the .jl script from this file, use the following commands.
+
+``` {bash}
+#| eval: false
+quarto convert README.qmd 
+jupyter nbconvert --to script README.ipynb 
+mv README.txt README.jl
+```
+
+or
+
+``` {bash}
+$ jupytext --to jl README.qmd
+```
 
 ## Installation
 
@@ -42,6 +62,14 @@ using SellmeierEqn
 using ATRSim
 ```
 
+Complex refractive index for ammonium sulfate by Myers et al. *Appl.
+Spectrosc.*,
+doi:[10.1177/0003702820928358](https://doi.org/10.1177/0003702820928358),
+2020. (The data file can be downloaded directly from the
+[article](https://journals.sagepub.com/doi/suppl/10.1177/0003702820928358/suppl_file/sj-pdf-1-asp-10.1177_0003702820928358.pdf).)
+`n` below is the same as `n₂` (refractive index of sample medium) in the
+notation of Harrick et al.
+
 ``` julia
 pathname = joinpath(@__DIR__, "examples", "Myers2020_ammsulf.csv")
 (ν, n, k) = let ammsulf = @subset CSV.read(pathname, DataFrame; comment="#") @. (650 <= :wavenum <= 4000)
@@ -49,6 +77,8 @@ pathname = joinpath(@__DIR__, "examples", "Myers2020_ammsulf.csv")
 end
 n₂fixed = 1.5 # alternate n₂
 ```
+
+Decadic linear absorption coefficient.
 
 ``` julia
 α = @. 1 / log(10) * 4 * π * ν * k * 1e2 # m^-1
@@ -98,19 +128,22 @@ fixed at 1.5.
 
 ``` julia
 plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
-plot!(ν, α .* d .* ξ(n, configfilm) .* χ(ν, R, configfilm) .* 1e-6, label = "varying n₂")
-plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* χ(ν, R, configfixed) .* 1e-6, label = "fixed n₂")
+plot!(ν, α .* 1e-6 .* d .* ξ(n, configfilm) .* χ(ν, n, R, configfilm), label = "varying n₂")
+plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed) .* χ(ν, n₂fixed, R, configfixed), label = "fixed n₂")
+plot!(size = (400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-9-output-1.svg)
 
-Comparison of spectra with different ATR models.
+Proceeding with the fixed-parameter case, compare spectra with different
+ATR models.
 
 ``` julia
 plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
-plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* 1e-6, label = "thin film")
-plot!(ν, α .* d .* ξ(n₂fixed, configfixed) .* χ(ν, R, configfixed) .* 1e-6, label = "particle")
-plot!(ν, 0.1 .* α .* deff(ν, n₂fixed, configbulk) .* 1e-6, label = "0.1 × bulk")
+plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed), label="thin film")
+plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed) .* χ(ν, n, R, configfixed), label="particle")
+plot!(ν, 0.05 .* α .* 1e-6 .* deff(ν, n₂fixed, configbulk), label = "0.05 × bulk")
+plot!(size = (400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-10-output-1.svg)
@@ -129,7 +162,8 @@ R = d ./ (4 / 3 * ηₕ) # μm
 ``` julia
 plot(xlabel = "mass (μg)", ylabel = "sample height (μm)")
 plot!(m, d, label = "film")
-plot!(m, 2 * R, label = "particle (ηₕ)")
+plot!(m, 2 * R, label = "particle (at ηₕ)")
+plot!(size = (400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-12-output-1.svg)
@@ -138,6 +172,9 @@ Simulation of absorbance.
 
 ``` julia
 Req(m) = m ./ aIRE ./ ρ .* 1e-3 ./ (4 * ηₕ / 3) # μm
+```
+
+``` julia
 m = [10., 20., 50.] # μg
 A = hcat(map(m -> prefactor(ν, n₂fixed, Req(m), configfixed) .* α ./ ρ .* m .* 1e-9, m)...)
 ```
@@ -147,58 +184,60 @@ plot(ν, A,
      label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
      xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance",
      xflip = true,
-     legend = :topleft, legendtitle = "mass deposited")
+     legend = :topleft, legendtitle = "mass deposited",
+     legendtitlefontsize = 8)
+plot!(size = (400, 250))
 ```
 
-![](README_files/figure-commonmark/cell-14-output-1.svg)
+![](README_files/figure-commonmark/cell-15-output-1.svg)
 
 ``` julia
 plot(ν, A,
      label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
      xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance",
      xflip = true,
-     legend = :topleft, legendtitle = "mass deposited")
+     legend = :topleft, legendtitle = "mass deposited",
+     legendtitlefontsize = 8)
 xlims!(800, 1400)
-```
-
-![](README_files/figure-commonmark/cell-15-output-1.svg)
-
-The following figure depicting the magnitude of particle modification
-factor is slightly different from Figure S2 (bottom panel) of Arangio et
-al. The version below is calculated assuming the penetration depth is
-not be influenced by the sample medium n₂ (bulk), but instead nₐᵢᵣ (thin
-flim) (Mirabella, 1985).
-
-``` julia
-pl = plot(layout = (2, 1))
-plot!(pl[1], xflip = true, ylim = [0, 4],
-     xlabel = "Wavenumber (cm⁻¹)", ylabel = "dₚ (μm)", legend = :topleft)
-plot!(pl[1], ν, dp(λ, configfixed), 
-     label = "thin film")
-plot!(pl[1], ν, dp(λ, n₂fixed, ATRConfig(N, aIRE, θ, n₁fixed)), 
-     label = "bulk")
-d = range(20, 100, step=20) .* 1e-3 # μm
-R = d ./ (4 * ηₕ / 3) # μm
-plot!(pl[2], ν, hcat(map(R -> χ(ν, R, configfixed), R)...),
-     label = reshape(map(d -> @sprintf("%.0f nm", d * 1e3), d), (1, :)), 
-     line_z = d', color = cgrad(:blues, rev=true), colorbar = false,
-     xlabel = "Wavenumber (cm⁻¹)", ylabel = "χ",
-     xflip = true, ylim = [0.5, 1.0],
-     legend = :bottomright, legendtitle = "thickness")
+plot!(size = (400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-16-output-1.svg)
 
-Plot as a function of deposited mass.
+The following figure reproduces the magnitude of particle modification
+factor from Figure S2 (bottom panel) of Arangio et al.
 
 ``` julia
-m = [10, 20, 50, 100, 120]
-plot(ν, hcat(map(m -> χ(ν, Req(m), configfixed), m)...),
-     label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
-     line_z = m', color = cgrad(:blues, rev=true), colorbar = false,
-     xlabel = "Wavenumber (cm⁻¹)", ylabel = "χ",
-     xflip = true, ylim = [0.5, 1.0],
-     legend = :bottomright, legendtitle = "mass deposited")
+pl = plot(layout = (2, 1), xflip = true, xlim = [500, 4000], 
+      xlabel = "Wavenumber (cm⁻¹)")
+plot!(pl[1], ν, dp(λ, n₂fixed, configfixed), label = false,
+      ylim = [0, 4], ylabel = "dₚ (μm)")
+d = range(20, 100, step=20) .* 1e-3 # μm
+R = d ./ (4 * ηₕ / 3) # μm
+plot!(pl[2], ν, hcat(map(R -> χ(ν, n₂fixed, R, configfixed), R)...),
+      label = reshape(map(d -> @sprintf("%.0f nm", d * 1e3), d), (1, :)), 
+      line_z = d', color = cgrad(:blues, rev=true), colorbar = false,
+      ylabel = "χ", ylim = [0.7, 1.0],
+      yticks = 0.7:0.05:1.0,
+      legend = :bottomright, legendtitle = "thickness", legendtitlefontsize = 8)
+plot!(size = (400, 500))
 ```
 
 ![](README_files/figure-commonmark/cell-17-output-1.svg)
+
+Replot as a function of deposited mass assuming hexagonal packing, which
+provides a lower bound on the sample height above IRE in particle form.
+
+``` julia
+m = [10, 20, 50, 100, 120]
+plot(ν, hcat(map(m -> χ(ν, n₂fixed, Req(m), configfixed), m)...),
+     label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
+     line_z = m', color = cgrad(:blues, rev=true), colorbar = false,
+     xlabel = "Wavenumber (cm⁻¹)", ylabel = "χ",
+     xflip = true, ylim = [0.7, 1.0],
+     legend = :bottomright, legendtitle = "mass deposited",
+     legendtitlefontsize = 8)
+plot!(size = (400, 250))
+```
+
+![](README_files/figure-commonmark/cell-18-output-1.svg)
