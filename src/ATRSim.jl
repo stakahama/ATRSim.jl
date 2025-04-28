@@ -2,7 +2,7 @@ module ATRSim
 using Unzip
 using Integrals
 
-export ATRConfig, Thinfilm, Bulk, E₀², t², ξF, dp, ξ, χ, deff, prefactor
+export ATRConfig, Thinfilm, Bulk, E₀², t², dp, ξ, χ, deff, prefactor, E0sq, tsq, xi, chi
 
 const RealsC = Union{Real, Vector{<:Union{Missing, Real}}}
 const RealsA = Union{Real, AbstractVector{<:Union{Missing, Real}}}
@@ -225,5 +225,14 @@ function prefactor(n₂::RealsA, config::Thinfilm)
     (; N, aIRE) = config
     N ./ aIRE .* ξ(n₂, config)
 end
+
+## -----------------------------------------------------------------------------
+
+const E0sq = E₀²
+const tsq = t²
+const xi = ξ
+const chi = χ
+
+## -----------------------------------------------------------------------------
 
 end # ATRSim
