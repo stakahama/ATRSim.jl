@@ -57,10 +57,10 @@ Comparison of particle spectra with different assumptions for n₂
 fixed at 1.5.
 
 ``` julia
-plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
-plot!(ν, α .* 1e-6 .* d .* ξ(n, configfilm), label = "varying n₂")
-plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed), label = "fixed n₂")
-plot!(size = (400, 250))
+plot(xflip=true, legend=:topleft, xlabel="Wavenumber (cm⁻¹)", ylabel="Absorbance")
+plot!(ν, α .* 1e-6 .* d .* ξ(n, configfilm), label="varying n₂")
+plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed), label="fixed n₂")
+plot!(size=(400, 250))
 ```
 
 ![](electricfield_comparison_files/figure-commonmark/cell-6-output-1.svg)
@@ -68,10 +68,10 @@ plot!(size = (400, 250))
 The extra peak in the n₂ varying case arises from ξ = deff / d.
 
 ``` julia
-plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Value")
-plot!(ν, α .* 1e-6, label = "α")
-plot!(ν, ξ(n, configfilm), label = "ξ")
-plot!(size = (400, 250))
+plot(xflip=true, legend=:topleft, xlabel="Wavenumber (cm⁻¹)", ylabel="Value")
+plot!(ν, α .* 1e-6, label="α")
+plot!(ν, ξ(n, configfilm), label="ξ")
+plot!(size=(400, 250))
 ```
 
 ![](electricfield_comparison_files/figure-commonmark/cell-7-output-1.svg)
@@ -79,10 +79,10 @@ plot!(size = (400, 250))
 Further breaking down ξ = deff / d = n₂₁ / cos(θ) \* E₀².
 
 ``` julia
-plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Value")
-plot!(ν, n₂₁ ./ cos(θ), label = "n₂₁ / cos(θ)")
-plot!(ν, E₀²(n, configfilm), label = "E₀²")
-plot!(size = (400, 250))
+plot(xflip=true, legend=:topleft, xlabel="Wavenumber (cm⁻¹)", ylabel="Value")
+plot!(ν, n₂₁ ./ cos(θ), label="n₂₁ / cos(θ)")
+plot!(ν, E₀²(n, configfilm), label="E₀²")
+plot!(size=(400, 250))
 ```
 
 ![](electricfield_comparison_files/figure-commonmark/cell-8-output-1.svg)
@@ -157,10 +157,10 @@ the sample-IRE interface follow from Fresnel transmission coefficients
 Comparison of normalized electric field intensities for bulk samples.
 
 ``` julia
-plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Normalized field intensity")
-plot!(ν, E₀²(n, configbulk), label = "E₀²")
-plot!(ν, t²(n, configbulk), label = "|t|²")
-plot!(size = (400, 250))
+plot(xflip=true, legend=:topleft, xlabel="Wavenumber (cm⁻¹)", ylabel="Normalized field intensity")
+plot!(ν, E₀²(n, configbulk), label="E₀²")
+plot!(ν, t²(n, configbulk), label="|t|²")
+plot!(size=(400, 250))
 ```
 
 ![](electricfield_comparison_files/figure-commonmark/cell-11-output-1.svg)

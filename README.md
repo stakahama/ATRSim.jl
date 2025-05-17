@@ -26,8 +26,7 @@ modified by a factor (χ) due to increased sample height of particles
 
 To generate the .jl script from this file, use the following commands.
 
-``` {bash}
-#| eval: false
+``` bash
 quarto convert README.qmd 
 jupyter nbconvert --to script README.ipynb 
 mv README.txt README.jl
@@ -35,20 +34,39 @@ mv README.txt README.jl
 
 or
 
-``` {bash}
-$ jupytext --to jl README.qmd
+``` bash
+jupytext --to jl README.qmd
 ```
 
 ## Installation
 
 ``` julia
 using Pkg
-Pkg.add(url = "https://github.com/stakahama/SellmeierEqn.jl")
-Pkg.add(url = "https://github.com/stakahama/ATRSim.jl")
+Pkg.add(url="https://github.com/stakahama/SellmeierEqn.jl")
+Pkg.add(url="https://github.com/stakahama/ATRSim.jl")
 ```
 
 Additionally, [Integrals.jl](https://github.com/SciML/Integrals.jl) is a
 dependency for calculating the particle modification factor (χ).
+
+Products exported by `ATRSim`.
+
+- `ATRConfig` type
+  - `Thinfilm` subtype
+  - `Bulk` subtype
+- normalized intensity
+  - `E₀²`, `E0sq` (non-unicode alias): from Harrick 1979
+  - `t²`, `tsq` (non-unicode alias): from Beattie et al. 2000
+- `dp`: penetration depth
+- `deff`: effective thickness for thick sample
+  (`n₂₁ * E₀² / cos(θ) * dp / 2`)
+- `ξ`, `xi` (non-unicode alias): `deff / d` for thin sample
+  (`n₂₁ * E₀² / cos(θ)`)
+- `χ`, `chi` (non-unicode alias): particle factor
+- `prefactor`: `N / aIRE * ξ * χ`
+
+Arguments to many of these functions take the form of vectors `ν`, `λ`,
+and refractive indices. They are assumed to be aligned a priori.
 
 ## Usage
 
@@ -96,10 +114,10 @@ aIRE = 8.0 * 1e-4 # m^2
 ```
 
 The optional last argument defines the refractive index of the third
-medium above the sample (air) when the sample is deposited as a thin
-film. The data type of variable returned determines the behavior of some
-functions (e.g., penetration depth, electric field intensity at the
-interface).
+medium above the sample (air) when the sample in contact with the IRE is
+prepared as a thin film. The data type of variable returned determines
+the behavior of some functions (e.g., penetration depth, electric field
+intensity at the interface).
 
 ``` julia
 nₐᵢᵣ = 1.0
@@ -127,10 +145,10 @@ Comparison of particle spectra with different assumptions for n₂
 fixed at 1.5.
 
 ``` julia
-plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
-plot!(ν, α .* 1e-6 .* d .* ξ(n, configfilm) .* χ(ν, n, R, configfilm), label = "varying n₂")
-plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed) .* χ(ν, n₂fixed, R, configfixed), label = "fixed n₂")
-plot!(size = (400, 250))
+plot(xflip=true, legend=:topleft, xlabel="Wavenumber (cm⁻¹)", ylabel="Absorbance")
+plot!(ν, α .* 1e-6 .* d .* ξ(n, configfilm) .* χ(ν, n, R, configfilm), label="varying n₂")
+plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed) .* χ(ν, n₂fixed, R, configfixed), label="fixed n₂")
+plot!(size=(400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-9-output-1.svg)
@@ -139,11 +157,11 @@ Proceeding with the fixed-parameter case, compare spectra with different
 ATR models.
 
 ``` julia
-plot(xflip = true, legend = :topleft, xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance")
+plot(xflip=true, legend=:topleft, xlabel="Wavenumber (cm⁻¹)", ylabel="Absorbance")
 plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed), label="thin film")
 plot!(ν, α .* 1e-6 .* d .* ξ(n₂fixed, configfixed) .* χ(ν, n, R, configfixed), label="particle")
-plot!(ν, 0.05 .* α .* 1e-6 .* deff(ν, n₂fixed, configbulk), label = "0.05 × bulk")
-plot!(size = (400, 250))
+plot!(ν, 0.05 .* α .* 1e-6 .* deff(ν, n₂fixed, configbulk), label="0.05 × bulk")
+plot!(size=(400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-10-output-1.svg)
@@ -160,10 +178,10 @@ R = d ./ (4 / 3 * ηₕ) # μm
 ```
 
 ``` julia
-plot(xlabel = "mass (μg)", ylabel = "sample height (μm)")
-plot!(m, d, label = "film")
-plot!(m, 2 * R, label = "particle (at ηₕ)")
-plot!(size = (400, 250))
+plot(xlabel = "mass (μg)", ylabel="sample height (μm)")
+plot!(m, d, label="film")
+plot!(m, 2 * R, label="particle (at ηₕ)")
+plot!(size=(400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-12-output-1.svg)
@@ -176,30 +194,30 @@ Req(m) = m ./ aIRE ./ ρ .* 1e-3 ./ (4 * ηₕ / 3) # μm
 
 ``` julia
 m = [10., 20., 50.] # μg
-A = hcat(map(m -> prefactor(ν, n₂fixed, Req(m), configfixed) .* α ./ ρ .* m .* 1e-9, m)...)
+A = stack(map(m -> prefactor(ν, n₂fixed, Req(m), configfixed) .* α ./ ρ .* m .* 1e-9, m))
 ```
 
 ``` julia
 plot(ν, A,
-     label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
-     xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance",
-     xflip = true,
-     legend = :topleft, legendtitle = "mass deposited",
-     legendtitlefontsize = 8)
-plot!(size = (400, 250))
+     label=reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
+     xlabel="Wavenumber (cm⁻¹)", ylabel="Absorbance",
+     xflip=true,
+     legend=:topleft, legendtitle="mass deposited",
+     legendtitlefontsize=8)
+plot!(size=(400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-15-output-1.svg)
 
 ``` julia
 plot(ν, A,
-     label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
-     xlabel = "Wavenumber (cm⁻¹)", ylabel = "Absorbance",
-     xflip = true,
-     legend = :topleft, legendtitle = "mass deposited",
-     legendtitlefontsize = 8)
+     label=reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
+     xlabel="Wavenumber (cm⁻¹)", ylabel="Absorbance",
+     xflip=true,
+     legend=:topleft, legendtitle="mass deposited",
+     legendtitlefontsize=8)
 xlims!(800, 1400)
-plot!(size = (400, 250))
+plot!(size=(400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-16-output-1.svg)
@@ -208,19 +226,19 @@ The following figure reproduces the magnitude of particle modification
 factor from Figure S2 (bottom panel) of Arangio et al.
 
 ``` julia
-pl = plot(layout = (2, 1), xflip = true, xlim = [500, 4000], 
-      xlabel = "Wavenumber (cm⁻¹)")
-plot!(pl[1], ν, dp(λ, n₂fixed, configfixed), label = false,
-      ylim = [0, 4], ylabel = "dₚ (μm)")
+pl = plot(layout=(2, 1), xflip=true, xlim=[500, 4000], 
+      xlabel="Wavenumber (cm⁻¹)")
+plot!(pl[1], ν, dp(λ, n₂fixed, configfixed), label=false,
+      ylim=[0, 4], ylabel="dₚ (μm)")
 d = range(20, 100, step=20) .* 1e-3 # μm
 R = d ./ (4 * ηₕ / 3) # μm
-plot!(pl[2], ν, hcat(map(R -> χ(ν, n₂fixed, R, configfixed), R)...),
-      label = reshape(map(d -> @sprintf("%.0f nm", d * 1e3), d), (1, :)), 
-      line_z = d', color = cgrad(:blues, rev=true), colorbar = false,
-      ylabel = "χ", ylim = [0.7, 1.0],
-      yticks = 0.7:0.05:1.0,
-      legend = :bottomright, legendtitle = "thickness", legendtitlefontsize = 8)
-plot!(size = (400, 500))
+plot!(pl[2], ν, stack(map(R -> χ(ν, n₂fixed, R, configfixed), R)),
+      label=reshape(map(d -> @sprintf("%.0f nm", d * 1e3), d), (1, :)), 
+      line_z=d', color=cgrad(:blues, rev=true), colorbar=false,
+      ylabel="χ", ylim=[0.7, 1.0],
+      yticks=0.7:0.05:1.0,
+      legend=:bottomright, legendtitle="thickness", legendtitlefontsize=8)
+plot!(size=(400, 500))
 ```
 
 ![](README_files/figure-commonmark/cell-17-output-1.svg)
@@ -230,14 +248,14 @@ provides a lower bound on the sample height above IRE in particle form.
 
 ``` julia
 m = [10, 20, 50, 100, 120]
-plot(ν, hcat(map(m -> χ(ν, n₂fixed, Req(m), configfixed), m)...),
-     label = reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
-     line_z = m', color = cgrad(:blues, rev=true), colorbar = false,
-     xlabel = "Wavenumber (cm⁻¹)", ylabel = "χ",
-     xflip = true, ylim = [0.7, 1.0],
-     legend = :bottomright, legendtitle = "mass deposited",
-     legendtitlefontsize = 8)
-plot!(size = (400, 250))
+plot(ν, stack(map(m -> χ(ν, n₂fixed, Req(m), configfixed), m)),
+     label=reshape(map(m -> @sprintf("%.0f μg", m), m), (1, :)),
+     line_z=m', color=cgrad(:blues, rev=true), colorbar=false,
+     xlabel="Wavenumber (cm⁻¹)", ylabel="χ",
+     xflip=true, ylim=[0.7, 1.0],
+     legend=:bottomright, legendtitle="mass deposited",
+     legendtitlefontsize=8)
+plot!(size=(400, 250))
 ```
 
 ![](README_files/figure-commonmark/cell-18-output-1.svg)
